@@ -1,0 +1,193 @@
+name: Exit Node
+
+on:
+  schedule:
+    - cron: "38 21 * * *" # 北京时间 05:38
+  workflow_dispatch:
+
+concurrency:
+  group: tailscale-exit
+  cancel-in-progress: true
+
+jobs:
+  exit-node-1:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Tailscale
+      run: |
+        curl -fsSL https://tailscale.com/install.sh | sh
+
+    - name: Connect Tailscale Exit Node
+      run: |
+        sudo tailscale up \
+          --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} \
+          --advertise-exit-node \
+          --accept-dns=false \
+          --hostname=github-exit-node2
+
+    - name: Enable IP forwarding and NAT
+      run: |
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo sysctl -w net.ipv6.conf.all.forwarding=1
+        IFACE=$(ip route | grep default | awk '{print $5}')
+        echo "Internet interface: $IFACE"
+        sudo iptables -t nat -A POSTROUTING -o "$IFACE" -j MASQUERADE
+        sudo iptables -A FORWARD -i tailscale0 -j ACCEPT
+        sudo iptables -A FORWARD -o tailscale0 -j ACCEPT
+
+    - name: Check Tailscale
+      run: |
+        sudo tailscale ip
+
+    - name: Keep alive
+      run: |
+        echo "Tailscale Exit Node running"
+        END=$((SECONDS+20400))
+        while [ $SECONDS -lt $END ]
+        do
+          date
+          sudo tailscale ip
+          sleep 3000
+        done
+
+    - name: Cleanup Tailscale
+      if: always()
+      run: |
+        sudo tailscale logout || true
+
+    - name: Delete old workflow runs
+      if: always()
+      run: |
+        gh run list \
+          --workflow=tailscale-exit.yml \
+          --limit 30 \
+          --json databaseId \
+          --jq '.[5:].databaseId' |
+        while read id
+        do
+          gh run delete "$id" --confirm || true
+        done
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  exit-node-2:
+    needs: exit-node-1
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Tailscale
+      run: |
+        curl -fsSL https://tailscale.com/install.sh | sh
+
+    - name: Connect Tailscale Exit Node
+      run: |
+        sudo tailscale up \
+          --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} \
+          --advertise-exit-node \
+          --accept-dns=false \
+          --hostname=github-exit-node2
+
+    - name: Enable IP forwarding and NAT
+      run: |
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo sysctl -w net.ipv6.conf.all.forwarding=1
+        IFACE=$(ip route | grep default | awk '{print $5}')
+        echo "Internet interface: $IFACE"
+        sudo iptables -t nat -A POSTROUTING -o "$IFACE" -j MASQUERADE
+        sudo iptables -A FORWARD -i tailscale0 -j ACCEPT
+        sudo iptables -A FORWARD -o tailscale0 -j ACCEPT
+
+    - name: Check Tailscale
+      run: |
+        sudo tailscale ip
+
+    - name: Keep alive
+      run: |
+        echo "Tailscale Exit Node running"
+        END=$((SECONDS+20400))
+        while [ $SECONDS -lt $END ]
+        do
+          date
+          sudo tailscale ip
+          sleep 3000
+        done
+
+    - name: Cleanup Tailscale
+      if: always()
+      run: |
+        sudo tailscale logout || true
+
+    - name: Delete old workflow runs
+      if: always()
+      run: |
+        gh run list \
+          --workflow=tailscale-exit.yml \
+          --limit 30 \
+          --json databaseId \
+          --jq '.[5:].databaseId' |
+        while read id
+        do
+          gh run delete "$id" --confirm || true
+        done
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  exit-node-3:
+    needs: exit-node-2
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Tailscale
+      run: |
+        curl -fsSL https://tailscale.com/install.sh | sh
+
+    - name: Connect Tailscale Exit Node
+      run: |
+        sudo tailscale up \
+          --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} \
+          --advertise-exit-node \
+          --accept-dns=false \
+          --hostname=github-exit-node2
+
+    - name: Enable IP forwarding and NAT
+      run: |
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo sysctl -w net.ipv6.conf.all.forwarding=1
+        IFACE=$(ip route | grep default | awk '{print $5}')
+        echo "Internet interface: $IFACE"
+        sudo iptables -t nat -A POSTROUTING -o "$IFACE" -j MASQUERADE
+        sudo iptables -A FORWARD -i tailscale0 -j ACCEPT
+        sudo iptables -A FORWARD -o tailscale0 -j ACCEPT
+
+    - name: Check Tailscale
+      run: |
+        sudo tailscale ip
+
+    - name: Keep alive
+      run: |
+        echo "Tailscale Exit Node running"
+        END=$((SECONDS+20400))
+        while [ $SECONDS -lt $END ]
+        do
+          date
+          sudo tailscale ip
+          sleep 3000
+        done
+
+    - name: Cleanup Tailscale
+      if: always()
+      run: |
+        sudo tailscale logout || true
+
+    - name: Delete old workflow runs
+      if: always()
+      run: |
+        gh run list \
+          --workflow=tailscale-exit.yml \
+          --limit 30 \
+          --json databaseId \
+          --jq '.[5:].databaseId' |
+        while read id
+        do
+          gh run delete "$id" --confirm || true
+        done
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
